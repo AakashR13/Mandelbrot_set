@@ -1,0 +1,12 @@
+File name: ./res/mandelbrot_acc.png
+GPU Accelerated: true
+Time to generate: 291.636 ms
+Iterations: 500
+Smooth color: true
+----------------------------------------
+File name: ./res/triple_mandelbrot_acc.png
+GPU Accelerated: true
+Time to generate: 63.3327 ms
+Iterations: 500
+Smooth color: true
+----------------------------------------

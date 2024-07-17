@@ -17,7 +17,7 @@ xlabel('t')
 legend(loc='upper left')
 grid()
 
-savefig('rgb_smooth.png', dpi=72)
+savefig('./res/rgb_smooth.png', dpi=72)
 
 close()
 

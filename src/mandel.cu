@@ -1,0 +1,191 @@
+#include <iostream>
+#include <vector>
+#include <chrono>
+#include <functional>
+#include <fstream>
+#include <cmath>
+#include <cuda_runtime.h>
+#include "window.h"
+#include "save_image.h"
+#include "utils.h"
+
+// Alias for complex type
+struct Complex {
+    double real;
+    double imag;
+
+    __host__ __device__ Complex(double r=0.0, double i=0.0) : real(r), imag(i) {}
+
+    __host__ __device__ double magnitude() const {
+        return sqrt(real * real + imag * imag);
+    }
+
+    __host__ __device__ Complex operator*(const Complex& other) const {
+        return Complex(real * other.real - imag * other.imag, real * other.imag + imag * other.real);
+    }
+
+    __host__ __device__ Complex operator+(const Complex& other) const {
+        return Complex(real + other.real, imag + other.imag);    
+    }
+};
+
+typedef Complex (*fractal_func_t)(Complex, Complex);
+
+__device__ Complex mandelbrot_func(Complex z, Complex c) {
+    return z * z + c;
+}
+
+__device__ Complex triple_mandelbrot_func(Complex z, Complex c) {
+    return z * z * z + c;
+}
+
+__device__ fractal_func_t fractal_functions[] = {mandelbrot_func, triple_mandelbrot_func};
+
+void checkCudaError(cudaError_t result, const char* func, const char* file, int line) {
+    if (result != cudaSuccess) {
+        std::cerr << "CUDA error at " << file << ":" << line << " code=" << static_cast<unsigned int>(result) 
+                  << " \"" << cudaGetErrorString(result) << "\" in " << func << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+#define CUDA_CHECK(val) checkCudaError((val), #val, __FILE__, __LINE__)
+
+__host__ void getDeviceProps() {
+    int nDevices;
+    CUDA_CHECK(cudaGetDeviceCount(&nDevices));
+
+    std::cout << "Number of devices: " << nDevices << std::endl;
+
+    for (int i = 0; i < nDevices; i++) {
+        cudaDeviceProp prop;
+        CUDA_CHECK(cudaGetDeviceProperties(&prop, i));
+        std::cout << "Device Number: " << i << "\n";
+        std::cout << "  Device name: " << prop.name << "\n";
+        std::cout << "  Memory Clock Rate (MHz): " << prop.memoryClockRate/1024 << "\n";
+        std::cout << "  Memory Bus Width (bits): " << prop.memoryBusWidth << "\n";
+        std::cout << "  Peak Memory Bandwidth (GB/s): " << 2.0 * prop.memoryClockRate * (prop.memoryBusWidth/8) / 1.0e6 << "\n";
+        std::cout << "  Total global memory (Gbytes): " << static_cast<float>(prop.totalGlobalMem) / 1024.0 / 1024.0 / 1024.0 << "\n";
+        std::cout << "  Shared memory per block (Kbytes): " << static_cast<float>(prop.sharedMemPerBlock) / 1024.0 << "\n";
+        std::cout << "  minor-major: " << prop.minor << "-" << prop.major << "\n";
+        std::cout << "  Warp-size: " << prop.warpSize << "\n";
+        std::cout << "  Concurrent kernels: " << (prop.concurrentKernels ? "yes" : "no") << "\n";
+        std::cout << "  Concurrent computation/communication: " << (prop.deviceOverlap ? "yes" : "no") << "\n\n";
+    }
+}
+
+// Convert a pixel coordinate to the complex domain
+__device__ Complex scale(int scr_width, int scr_height, double fr_x_min, double fr_x_max, double fr_y_min, double fr_y_max, Complex c) {
+    return Complex(c.real / static_cast<double>(scr_width) * (fr_x_max - fr_x_min) + fr_x_min,
+                   c.imag / static_cast<double>(scr_height) * (fr_y_max - fr_y_min) + fr_y_min);
+}
+
+// Check if a point is in the set or escapes to infinity, return the number of iterations
+__device__ int escape(Complex c, int iter_max, fractal_func_t func) {
+    Complex z(0);
+    int iter = 0;
+
+    while (z.magnitude() < 2.0 && iter < iter_max) {
+        z = func(z, c);
+        iter++;
+    }
+
+    return iter;
+}
+
+// Loop over each pixel from our image and check if the points associated with this pixel escape to infinity
+__global__ void get_number_iterations(int scr_width, int scr_height, double fr_x_min, double fr_x_max, double fr_y_min, double fr_y_max,
+                                      int iter_max, int *colors, int func_idx) {
+    int tix = blockDim.x * blockIdx.x + threadIdx.x;
+    int tiy = blockDim.y * blockIdx.y + threadIdx.y;
+    if (tiy < scr_height && tix < scr_width) {
+        Complex c(static_cast<double>(tix), static_cast<double>(tiy));
+        c = scale(scr_width, scr_height, fr_x_min, fr_x_max, fr_y_min, fr_y_max, c);
+        int idx = tiy * scr_width + tix;
+        fractal_func_t func = fractal_functions[func_idx];
+        colors[idx] = escape(c, iter_max, func);
+    }
+}
+
+void fractal(window<int> &scr, window<double> &fract, int iter_max, std::vector<int> &colors,
+             int func_idx, const char *fname, bool smooth_color) {
+
+    int scr_width = scr.width();
+    int scr_height = scr.height();
+
+    double fr_x_min = fract.x_min();
+    double fr_x_max = fract.x_max();
+    double fr_y_min = fract.y_min();
+    double fr_y_max = fract.y_max();
+
+    auto start = std::chrono::steady_clock::now();
+    int *d_colors;
+    CUDA_CHECK(cudaMalloc(&d_colors, colors.size() * sizeof(int)));
+
+    dim3 threadsPerBlock(32, 32);	
+    dim3 numBlocks((scr_width + threadsPerBlock.x - 1) / threadsPerBlock.x,
+                   (scr_height + threadsPerBlock.y - 1) / threadsPerBlock.y);
+
+    get_number_iterations<<<numBlocks, threadsPerBlock>>>(scr_width, scr_height, fr_x_min, fr_x_max, fr_y_min, fr_y_max,
+                                                          iter_max, d_colors, func_idx);    
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    CUDA_CHECK(cudaMemcpy(colors.data(), d_colors, colors.size() * sizeof(int), cudaMemcpyDeviceToHost));
+    auto end = std::chrono::steady_clock::now();
+
+    std::cout << "Time to generate " << fname << " = " << std::chrono::duration<double, std::milli>(end - start).count() << " [ms]" << std::endl;
+    
+    // Save (show) the result as an image
+    plot(scr, colors, iter_max, fname, smooth_color);
+
+    // Output details to a text file
+    std::ofstream out("./res/fractal_details_GPU.txt", std::ios::app);
+    if (out.is_open()) {
+        out << "File name: " << fname << "\n";
+        out << "GPU Accelerated: true" << "\n";
+        out << "Time to generate: " << std::chrono::duration<double, std::milli>(end - start).count() << " ms\n";
+        out << "Iterations: " << iter_max << "\n";
+        out << "Smooth color: " << (smooth_color ? "true" : "false") << "\n";
+        out << "----------------------------------------\n";
+        out.close();
+    } else {
+        std::cerr << "Unable to open file for writing" << std::endl;
+    }
+
+    CUDA_CHECK(cudaFree(d_colors));
+}
+
+void mandelbrot() {
+    // Define the size of the image
+    window<int> scr(0, 1200, 0, 1200);
+    // The domain in which we test for points
+    window<double> fract(-2.2, 1.2, -1.7, 1.7);
+
+    int iter_max = 500;
+    const char *fname = "./res/mandelbrot_acc.png";
+    bool smooth_color = true;
+    std::vector<int> colors(scr.size());
+
+    fractal(scr, fract, iter_max, colors, 0, fname, smooth_color);
+}
+
+void triple_mandelbrot() {
+    // Define the size of the image
+    window<int> scr(0, 1200, 0, 1200);
+    // The domain in which we test for points
+    window<double> fract(-1.5, 1.5, -1.5, 1.5);
+
+    int iter_max = 500;
+    const char *fname = "./res/triple_mandelbrot_acc.png";
+    bool smooth_color = true;
+    std::vector<int> colors(scr.size());
+
+    fractal(scr, fract, iter_max, colors, 1, fname, smooth_color);
+}
+
+int main() {
+    // getDeviceProps();
+    mandelbrot();
+    triple_mandelbrot();
+}
