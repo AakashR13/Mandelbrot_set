@@ -39,6 +39,12 @@ run:
 	-@$(OUTPUT_DIR)/mandelbrot_acc || echo "Error in Accelerated"
 	@echo "Finished!!!"
 
+profiler:
+	@echo "Generating Nsights-Systems Report..."
+	-@nsys profile -o ./reports/nsys_profile.nsys-rep --force-overwrite true $(OUTPUT_DIR)/mandelbrot_acc
+	@echo "Generated!"
+	@nsys-ui
+
 fresh_build: clean prepare build build-gpu run 
 # Phony targets
-.PHONY: all prepare build build-gpu clean run
+.PHONY: all prepare build build-gpu clean run profiler
