@@ -36,6 +36,11 @@ clean:
 	@echo "Cleaning Reports..."
 	@rm -rf $(REP_DIR)
 	@echo "All files cleaned!"
+clean-res:
+	@echo "Cleaning Results..."
+	@rm -rf $(RES_DIR)
+	@mkdir -p $(RES_DIR)
+	@echo "Cleaned!"
 
 run:
 	@echo "Running CPU Version..."
@@ -59,6 +64,6 @@ profiler:
 	@echo "Generated!"
 
 fresh_build: clean prepare build build-gpu run check
-execution: run check 
+execution: clean-res run check 
 # Phony targets
-.PHONY: all prepare build build-gpu clean run check profiler
+.PHONY: all prepare build build-gpu clean clean-res run check profiler

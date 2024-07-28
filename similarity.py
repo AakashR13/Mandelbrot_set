@@ -23,7 +23,7 @@ def img_compare(img1,img2):
         print(f"Img2:{img2}")
         print('Matching Images In percentage: ', actual_error,'\t%' )
         f = plt.figure()
-        text_lable = str("Matching Images Percentage" + str(actual_error)+"%")
+        text_lable = str("Matching Images Percentage: " + str(actual_error)+"%")
         plt.suptitle(text_lable)
         f.add_subplot(1,2, 1)
         plt.imshow(im1)
@@ -33,7 +33,7 @@ def img_compare(img1,img2):
 
     except ValueError as identifier:
         f = plt.figure()
-        text_lable = str("Matching Images Percentage " + str(actual_error)+"%")
+        text_lable = str("Matching Images Percentage: " + str(actual_error)+"%")
         plt.suptitle(text_lable)
         f.add_subplot(1,2, 1)
         plt.imshow(im1)
