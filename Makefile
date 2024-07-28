@@ -40,7 +40,7 @@ clean-res:
 	@echo "Cleaning Results..."
 	@rm -rf $(RES_DIR)
 	@mkdir -p $(RES_DIR)
-	@echo "Cleaned!"
+	@echo "Cleaned!		"
 
 run:
 	@echo "Running CPU Version..."
