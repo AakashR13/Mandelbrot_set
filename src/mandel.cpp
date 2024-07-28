@@ -9,6 +9,7 @@
 #include "window.h"
 #include "save_image.h"
 #include "utils.h"
+#include "params.h"
 
 // clang++ -std=c++11 -stdlib=libc++ -O3 save_image.cpp utils.cpp mandel.cpp -lfreeimage
 
@@ -23,7 +24,7 @@ Complex scale(window<int> &scr, window<double> &fr, Complex c) {
 }
 
 // Check if a point is in the set or escapes to infinity, return the number if iterations
-int escape(Complex c, int iter_max, const std::function<Complex( Complex, Complex)> &func) {
+int escape(Complex c, const std::function<Complex( Complex, Complex)> &func) {
 	Complex z(0);
 	int iter = 0;
 
@@ -36,14 +37,14 @@ int escape(Complex c, int iter_max, const std::function<Complex( Complex, Comple
 }
 
 // Loop over each pixel from our image and check if the points associated with this pixel escape to infinity
-void get_number_iterations(window<int> &scr, window<double> &fract, int iter_max, std::vector<int> &colors,
+void get_number_iterations(window<int> &scr, window<double> &fract, std::vector<int> &colors,
 	const std::function<Complex( Complex, Complex)> &func) {
 	int k = 0, progress = -1;
 	for(int i = scr.y_min(); i < scr.y_max(); ++i) {
 		for(int j = scr.x_min(); j < scr.x_max(); ++j) {
 			Complex c((double)j, (double)i);
 			c = scale(scr, fract, c);
-			colors[k] = escape(c, iter_max, func);
+			colors[k] = escape(c, func);
 			k++;
 		}
 		// if(progress < (int)(i*100.0/scr.y_max())){
@@ -53,10 +54,10 @@ void get_number_iterations(window<int> &scr, window<double> &fract, int iter_max
 	}
 }
 
-void fractal(window<int> &scr, window<double> &fract, int iter_max, std::vector<int> &colors,
+void fractal(window<int> &scr, window<double> &fract, std::vector<int> &colors,
 	const std::function<Complex( Complex, Complex)> &func, const char *fname, bool smooth_color) {
 	auto start = std::chrono::steady_clock::now();
-	get_number_iterations(scr, fract, iter_max, colors, func);
+	get_number_iterations(scr, fract, colors, func);
 	auto end = std::chrono::steady_clock::now();
 	std::cout << "Time to generate " << fname << " = " << std::chrono::duration <double, std::milli> (end - start).count() << " [ms]" << std::endl;
 	
@@ -80,14 +81,13 @@ void fractal(window<int> &scr, window<double> &fract, int iter_max, std::vector<
 
 void mandelbrot() {
 	// Define the size of the image
-	window<int> scr(0, 1200, 0, 1200);
+	window<int> scr(0, win_width, 0, win_height);
 	// The domain in which we test for points
 	window<double> fract(-2.2, 1.2, -1.7, 1.7);
 
 	// The function used to calculate the fractal
 	auto func = [] (Complex z, Complex c) -> Complex {return z * z + c; };
 
-	int iter_max = 500;
 	const char *fname = "./res/mandelbrot_nonaccel.png";
 	bool smooth_color = true;
 	std::vector<int> colors(scr.size());
@@ -95,24 +95,23 @@ void mandelbrot() {
 	// Experimental zoom (bugs ?). This will modify the fract window (the domain in which we calculate the fractal function) 
 	//zoom(1.0, -1.225, -1.22, 0.15, 0.16, fract); //Z2
 	
-	fractal(scr, fract, iter_max, colors, func, fname, smooth_color);
+	fractal(scr, fract, colors, func, fname, smooth_color);
 }
 
 void triple_mandelbrot() {
 	// Define the size of the image
-	window<int> scr(0, 1200, 0, 1200);
+	window<int> scr(0, win_width, 0, win_height);
 	// The domain in which we test for points
 	window<double> fract(-1.5, 1.5, -1.5, 1.5);
 
 	// The function used to calculate the fractal
 	auto func = [] (Complex z, Complex c) -> Complex {return z * z * z + c; };
 
-	int iter_max = 500;
 	const char *fname = "./res/triple_mandelbrot_nonaccel.png";
 	bool smooth_color = true;
 	std::vector<int> colors(scr.size());
 
-	fractal(scr, fract, iter_max, colors, func, fname, smooth_color);
+	fractal(scr, fract, colors, func, fname, smooth_color);
 }
 
 int main() {

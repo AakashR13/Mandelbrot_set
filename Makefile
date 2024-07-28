@@ -5,14 +5,17 @@ LDFLAGS = -lfreeimage
 OUTPUT_DIR = bin
 SRC_DIR = src
 RES_DIR = res
+REP_DIR = reports
 SRC_FILES = $(wildcard $(SRC_DIR)/*.cpp)
 OBJ_FILES = $(patsubst $(SRC_DIR)/%.cpp,$(OUTPUT_DIR)/%.o,$(SRC_FILES))
+NCU = $(shell which ncu)
+
 
 all: fresh_build
 
 prepare:
 	@echo "Preparing..."
-	@mkdir -p $(SRC_DIR) $(OUTPUT_DIR) $(RES_DIR)
+	@mkdir -p $(SRC_DIR) $(OUTPUT_DIR) $(RES_DIR) $(REP_DIR)
 	@echo "Prepared!"
 
 build: 
@@ -30,6 +33,8 @@ clean:
 	@rm -rf $(OUTPUT_DIR)
 	@echo "Cleaning Results..."
 	@rm -rf $(RES_DIR)
+	@echo "Cleaning Reports..."
+	@rm -rf $(REP_DIR)
 	@echo "All files cleaned!"
 
 run:
@@ -39,12 +44,21 @@ run:
 	-@$(OUTPUT_DIR)/mandelbrot_acc || echo "Error in Accelerated"
 	@echo "Finished!!!"
 
+check:
+	@python similarity.py
+
 profiler:
 	@echo "Generating Nsights-Systems Report..."
-	-@nsys profile -o ./reports/nsys_profile.nsys-rep --force-overwrite true $(OUTPUT_DIR)/mandelbrot_acc
+	-@nsys profile -o $(REP_DIR)/nsys_profile.nsys-rep --force-overwrite true $(OUTPUT_DIR)/mandelbrot_acc
+	@echo "Opening NSYS Report!"
+	@nsys-ui $(REP_DIR)/nsys_profile.nsys-rep
+	@echo "Generating Nsights-Compute Report..."
+	@sudo $(NCU) -o $(REP_DIR)/ncu-rep.ncu-rep -f --section ComputeWorkloadAnalysis --section InstructionStats --section SpeedOfLight $(OUTPUT_DIR)/mandelbrot_acc	
+	@echo "Opening NCU Report!"
+	@ncu-ui $(REP_DIR)/ncu-rep.ncu-rep+
 	@echo "Generated!"
-	@nsys-ui
 
-fresh_build: clean prepare build build-gpu run 
+fresh_build: clean prepare build build-gpu run check
+execution: run check 
 # Phony targets
-.PHONY: all prepare build build-gpu clean run profiler
+.PHONY: all prepare build build-gpu clean run check profiler
