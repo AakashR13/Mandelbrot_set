@@ -1,0 +1,25 @@
+Found 1 CUDA-capable device(s)
+Device 0: NVIDIA GeForce GTX 1660 Ti
+  Total amount of global memory: 6032850944 bytes
+  Multiprocessors: 24
+  CUDA Cores/MP: 64
+  Total CUDA Cores: 1536
+  GPU Max Clock rate: 1590 MHz
+  Memory Clock rate: 6001 MHz
+  Memory Bus Width: 192-bit
+  L2 Cache Size: 1572864 bytes
+  Max Texture Dimension Size (x,y,z): 1D=(131072), 2D=(131072,65536), 3D=(16384,16384,16384)
+  Max Layered Texture Size (dim) x layers: 1D=(32768) x 2048, 2D=(32768,32768) x 2048
+  Total amount of constant memory: 65536 bytes
+  Total amount of shared memory per block: 49152 bytes
+  Total number of registers available per block: 65536
+  Warp size: 32
+  Maximum number of threads per multiprocessor: 1024
+  Maximum number of threads per block: 1024
+  Max dimension size of a thread block (x,y,z): (1024,1024,64)
+  Max dimension size of a grid size (x,y,z): (2147483647,65535,65535)
+  Concurrent copy and kernel execution: Yes
+  Number of asynchronous engines: 3
+  Unified addressing: Yes
+  Memory pitch: 2147483647
+-------------------------------------------------------------

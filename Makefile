@@ -37,7 +37,7 @@ clean:
 	@rm -rf $(REP_DIR)
 	@echo "All files cleaned!"
 clean-res:
-	@echo "Cleaning Results..."
+	@echo "Cleaning Results..."	
 	@rm -rf $(RES_DIR)
 	@mkdir -p $(RES_DIR)
 	@echo "Cleaned!		"
@@ -60,7 +60,7 @@ profiler:
 	@echo "Generating Nsights-Compute Report..."
 	@sudo $(NCU) -o $(REP_DIR)/ncu-rep.ncu-rep -f --section ComputeWorkloadAnalysis --section InstructionStats --section SpeedOfLight $(OUTPUT_DIR)/mandelbrot_acc	
 	@echo "Opening NCU Report!"
-	@ncu-ui $(REP_DIR)/ncu-rep.ncu-rep+
+	@ncu-ui $(REP_DIR)/ncu-rep.ncu-rep	
 	@echo "Generated!"
 
 fresh_build: clean prepare build build-gpu run check

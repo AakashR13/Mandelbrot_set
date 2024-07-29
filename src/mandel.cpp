@@ -65,7 +65,7 @@ void fractal(window<int> &scr, window<double> &fract, std::vector<int> &colors,
 	plot(scr, colors, iter_max, fname, smooth_color);
 
 	// Output details to a text file
-	std::ofstream out("./res/fractal_details_CPU.txt", std::ios::app);
+	std::ofstream out("./reports/fractal_details_CPU.txt", std::ios::app);
 	if (out.is_open()) {
 		out << "File name: " << fname << "\n";
 		out << "GPU Accelerated: false" << "\n";

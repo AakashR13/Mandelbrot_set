@@ -1,10 +1,12 @@
 from PIL import ImageChops, Image
 import matplotlib.pyplot as plt 
 import numpy as np
+
 mandelbrot_non = "./res/mandelbrot_nonaccel.png"
 mandelbrot_acc = "./res/mandelbrot_acc.png"
 mandelbrot_3_non =  "./res/triple_mandelbrot_nonaccel.png"
 mandelbrot_3_acc = "./res/triple_mandelbrot_acc.png"
+
 def img_compare(img1,img2):
     actual_error = 0
     im1 = Image.open(img1)
