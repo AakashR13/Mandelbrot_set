@@ -1,14 +1,15 @@
-from PIL import ImageChops, Image
-import matplotlib.pyplot as plt 
+from PIL import Image, ImageChops
 import numpy as np
+import matplotlib.pyplot as plt
+import os
 
 mandelbrot_non = "./res/mandelbrot_nonaccel.png"
 mandelbrot_acc = "./res/mandelbrot_acc.png"
 mandelbrot_3_non =  "./res/triple_mandelbrot_nonaccel.png"
 mandelbrot_3_acc = "./res/triple_mandelbrot_acc.png"
-
-def img_compare(img1,img2):
-    actual_error = 0
+output = "./reports/"
+def img_compare(img1, img2, dst):
+    # Open images and convert to numpy arrays
     im1 = Image.open(img1)
     x = np.array(im1.histogram())
 
@@ -17,33 +18,80 @@ def img_compare(img1,img2):
 
     try:
         if len(x) == len(y):
+            # Calculate error with more precision
             error = np.sqrt(((x - y) ** 2).mean())
-            error = str(error)[:2]
-            actual_error = float(100) - float(error)
-        diff = ImageChops.difference(im1, im2).getbbox()
-        print(f"Img1:{img1}")
-        print(f"Img2:{img2}")
-        print('Matching Images In percentage: ', actual_error,'\t%' )
-        f = plt.figure()
-        text_lable = str("Matching Images Percentage: " + str(actual_error)+"%")
-        plt.suptitle(text_lable)
-        f.add_subplot(1,2, 1)
-        plt.imshow(im1)
-        f.add_subplot(1,2, 2)
-        plt.imshow(im2)
-        plt.show(block=True)
+            actual_error = 100 - error  # Keep full precision
+
+            # Extract directory and construct filename
+            base_name_img1 = os.path.splitext(os.path.basename(img1))[0]
+            base_name_img2 = os.path.splitext(os.path.basename(img2))[0]
+            file_name = f"{base_name_img1}_{base_name_img2}_comparison.png"
+            file_path = os.path.join(dst, file_name)
+
+            # Save results to a file
+            f = plt.figure()
+            text_label = f"Matching Images Percentage: {actual_error:.6f}%"
+            plt.suptitle(text_label)
+            f.add_subplot(1, 2, 1)
+            plt.imshow(im1)
+            f.add_subplot(1, 2, 2)
+            plt.imshow(im2)
+            plt.savefig(file_path)  # Save to a file
+            plt.close(f)  # Close the figure to free memory
+            print(f"Img1: {img1}")
+            print(f"Img2: {img2}")
+            print(f"Matching Images In percentage: {actual_error:.6f}%")
+            print(f"Comparison saved to '{file_path}'")
 
     except ValueError as identifier:
+        dir_name = os.path.dirname(img1)
+        base_name_img1 = os.path.splitext(os.path.basename(img1))[0]
+        base_name_img2 = os.path.splitext(os.path.basename(img2))[0]
+        file_name = f"{base_name_img1}_{base_name_img2}_comparison_error.png"
+        file_path = os.path.join(dir_name, file_name)
+
         f = plt.figure()
-        text_lable = str("Matching Images Percentage: " + str(actual_error)+"%")
-        plt.suptitle(text_lable)
-        f.add_subplot(1,2, 1)
+        text_label = f"Matching Images Percentage: {actual_error:.6f}%"
+        plt.suptitle(text_label)
+        f.add_subplot(1, 2, 1)
         plt.imshow(im1)
-        f.add_subplot(1,2, 2)
+        f.add_subplot(1, 2, 2)
         plt.imshow(im2)
-        plt.show(block=True)
+        plt.savefig(file_path)  # Save to a file
+        plt.close(f)  # Close the figure to free memory
+        
+        print(f"Comparison with error saved to '{file_path}'")
         print('identifier: ', identifier)
 
-img_compare(mandelbrot_non,mandelbrot_acc)
+# def img_compare(img1, img2):
+#     im1 = Image.open(img1).convert('RGB')
+#     im2 = Image.open(img2).convert('RGB')
 
-img_compare(mandelbrot_3_non,mandelbrot_3_acc)
+#     # Convert images to numpy arrays
+#     im1_np = np.array(im1)
+#     im2_np = np.array(im2)
+
+#     # Compute MSE
+#     mse_value = mse(im1_np, im2_np)
+    
+#     # Convert MSE to percentage similarity
+#     max_pixel_value = 255  # Assuming 8-bit images
+#     similarity_percentage = 100 - (mse_value / (max_pixel_value**2) * 100)
+
+#     # Display results
+#     print(f"Img1: {img1}")
+#     print(f"Img2: {img2}")
+#     print('Matching Images In percentage: {:.2f}%'.format(similarity_percentage))
+    
+#     f = plt.figure()
+#     text_label = f"Matching Images Percentage: {similarity_percentage:.2f}%"
+#     plt.suptitle(text_label)
+#     f.add_subplot(1, 2, 1)
+#     plt.imshow(im1)
+#     f.add_subplot(1, 2, 2)
+#     plt.imshow(im2)
+#     plt.show(block=True)
+
+img_compare(mandelbrot_non,mandelbrot_acc,output)
+
+img_compare(mandelbrot_3_non,mandelbrot_3_acc,output)
