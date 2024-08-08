@@ -128,4 +128,21 @@ int getDeviceProps(const char* filepath){
     std::cout << msg << " " << fname << " = " << std::chrono::duration<double, std::milli>(end - start).count() << " [ms]" << std::endl; \
 }
 
+// template<class T>
+// __inline__ __host__ CUDART_DEVICE cudaError_t cudaOccupancyMaxPotentialBlockSize(
+//     int    *minGridSize,
+//     int    *blockSize,
+//     T       func,
+//     size_t  dynamicSMemSize = 0,
+//     int     blockSizeLimit = 0)
+// {
+//     return cudaOccupancyMaxPotentialBlockSizeVariableSMem(minGridSize, blockSize, func, __cudaOccupancyB2DHelper(dynamicSMemSize), blockSizeLimit);
+// }
+
+// minGridSize     = Suggested min grid size to achieve a full machine launch.
+// blockSize       = Suggested block size to achieve maximum occupancy.
+// func            = Kernel function.
+// dynamicSMemSize = Size of dynamically allocated shared memory. Of course, it is known at runtime before any kernel launch. The size of the statically allocated shared memory is not needed as it is inferred by the properties of func.
+// blockSizeLimit  = Maximum size for each block. In the case of 1D kernels, it can coincide with the number of input elements.
+
 #endif

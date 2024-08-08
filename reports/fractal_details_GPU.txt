@@ -2,7 +2,7 @@ File name: ./res/mandelbrot_acc.png
 GPU Accelerated: true
 Streams: disabled
 Debug Mode: disabled
-Time to generate: 123.982 ms
+Time to generate: 66.3435 ms
 Iterations: 500
 Smooth color: true
 ----------------------------------------
@@ -10,7 +10,7 @@ File name: ./res/triple_mandelbrot_acc.png
 GPU Accelerated: true
 Streams: disabled
 Debug Mode: disabled
-Time to generate: 186.736 ms
+Time to generate: 230.904 ms
 Iterations: 500
 Smooth color: true
 ----------------------------------------

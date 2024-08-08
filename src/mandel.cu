@@ -19,11 +19,27 @@ struct FractalParams {
     double fr_x_min;
     double fr_y_max;
     double fr_y_min;
+    double x_scale;
+    double y_scale;
+    __host__ __device__ FractalParams() {}
 
     FractalParams(const window<int>& scr, const window<double>& fract)
     :   scr_width(scr.width()), scr_height(scr.height()),
         fr_x_max(fract.x_max()), fr_x_min(fract.x_min()),
-        fr_y_max(fract.y_max()), fr_y_min(fract.y_min()) {}
+        fr_y_max(fract.y_max()), fr_y_min(fract.y_min()),
+        x_scale(static_cast<double>(scr.width()) * (fract.x_max()-fract.x_min()) + fract.x_min()),
+        y_scale(static_cast<double>(scr.height()) * (fract.y_max()-fract.y_min()) + fract.y_min()) {}
+
+    void print() const {
+        printf("scr_width: %d\n", scr_width);
+        printf("scr_height: %d\n", scr_height);
+        printf("fr_x_max: %.2f\n", fr_x_max);
+        printf("fr_x_min: %.2f\n", fr_x_min);
+        printf("fr_y_max: %.2f\n", fr_y_max);
+        printf("fr_y_min: %.2f\n", fr_y_min);
+        printf("x_scale: %.2f\n", x_scale);
+        printf("y_scale: %.2f\n", y_scale);
+    }
 };
 
 
@@ -60,7 +76,9 @@ __forceinline__ __device__ Complex triple_mandelbrot_func(Complex z, Complex c) 
 __device__ fractal_func_t fractal_functions[] = {mandelbrot_func, triple_mandelbrot_func};
 
 // Convert a pixel coordinate to the complex domain
-    __forceinline__ __device__ Complex scale(FractalParams params, Complex c) {
+    __forceinline__ __device__ Complex scale(Complex c, const FractalParams params) { // make scale factor vars
+    // double dx_scale = static_cast<double>(params.scr_width) * (params.fr_x_max - params.fr_x_min);
+    // double dy_scale = static_cast<double>(params.scr_height) * (params.fr_y_max - params.fr_y_min);
         return Complex(c.real / static_cast<double>(params.scr_width) * (params.fr_x_max - params.fr_x_min) + params.fr_x_min,
                     c.imag / static_cast<double>(params.scr_height) * (params.fr_y_max - params.fr_y_min) + params.fr_y_min);
     }
@@ -78,33 +96,87 @@ __device__ fractal_func_t fractal_functions[] = {mandelbrot_func, triple_mandelb
         return iter;
     }
 
+    __constant__ FractalParams d_params;
+
     // Loop over each pixel from our image and check if the points associated with this pixel escape to infinity
-    __global__ void get_number_iterations(FractalParams params, int *colors, int func_idx, int offset =0) {
+    __global__ void get_number_iterations(int *colors, int func_idx, int offset =0) {
 
         int tix = blockDim.x * blockIdx.x + threadIdx.x + offset;
         int x = tix % win_width;
         int y = tix / win_width;
 
-        if(tix < params.scr_height * params.scr_width){
+        if(tix < d_params.scr_height * d_params.scr_width){
             Complex c(static_cast<double>(x), static_cast<double>(y));
-            c = scale(params, c);
+            c = scale(c,d_params);
 
             fractal_func_t func = fractal_functions[func_idx];
             colors[tix-offset] = escape(c, func);        
         }
     }
 
+    __global__ void just_basic_mandelbrot(int* colors, int offset=0) {
+        int tix = blockDim.x * blockIdx.x + threadIdx.x + offset;
+        double x = tix % win_width;
+        double y = tix / win_width;
+
+        if(tix < d_params.scr_height * d_params.scr_width){
+            double c_imag = (x) / static_cast<double>(d_params.scr_height) * (d_params.fr_y_max - d_params.fr_y_min) + d_params.fr_y_min;
+            double c_real = (y) / static_cast<double>(d_params.scr_width) * (d_params.fr_x_max - d_params.fr_x_min) + d_params.fr_x_min;
+
+            double z_real=0,z_imag=0;
+            double z_real2=0,z_imag2=0;
+            int iter = 0;
+
+            while( z_imag*z_imag + z_real*z_real < 4 && iter < iter_max){
+                z_real2 = z_real*z_real;
+                z_imag2 = z_imag*z_imag;
+                z_imag = 2 * z_real * z_imag + c_imag;
+                z_real = z_real2 - z_imag2 + c_real;
+                iter++;
+            }
+            colors[tix-offset] = iter;
+        }
+    }
+
+        __global__ void just_basic_mandelbrot(int* colors, int offset=0) {
+        int tix = blockDim.x * blockIdx.x + threadIdx.x + offset;
+        double x = tix % win_width;
+        double y = tix / win_width;
+
+        if(tix < d_params.scr_height * d_params.scr_width){
+            double c_imag = (x) / static_cast<double>(d_params.scr_height) * (d_params.fr_y_max - d_params.fr_y_min) + d_params.fr_y_min;
+            double c_real = (y) / static_cast<double>(d_params.scr_width) * (d_params.fr_x_max - d_params.fr_x_min) + d_params.fr_x_min;
+
+            double z_real=0,z_imag=0;
+            double z_real2=0,z_imag2=0;
+            int iter = 0;
+
+            while( z_imag*z_imag + z_real*z_real < 4 && iter < iter_max){
+                z_real2 = z_real*z_real;
+                z_imag2 = z_imag*z_imag;
+                z_imag = 2 * z_real * z_imag + c_imag;
+                z_real = z_real2 - z_imag2 + c_real;
+                iter++;
+            }
+            colors[tix-offset] = iter;
+        }
+    }
 void fractal(window<int> &scr, window<double> &fract, std::vector<int> &colors,
              int func_idx, const char *fname, bool smooth_color) {
     
-    FractalParams params(scr,fract);
+    FractalParams h_params(scr,fract);
+    // h_params.print();
+    // printf("GPU x_scale: %.2f\n",static_cast<double>(h_params.scr_width) * (h_params.fr_x_max - h_params.fr_x_min) + h_params.fr_x_min);
+    // printf("GPU y_scale: %.2f\n",static_cast<double>(h_params.scr_height) * (h_params.fr_y_max - h_params.fr_y_min) + h_params.fr_y_min);
+
+    CUDA_CHECK(cudaMemcpyToSymbol(d_params,&h_params,sizeof(FractalParams)));
 
     auto start = std::chrono::steady_clock::now();
     int *d_colors;
     CUDA_CHECK(cudaMalloc(&d_colors, colors.size() * sizeof(int)));
 
-    dim3 threadsPerBlock(1024);
-    dim3 numBlocks((params.scr_width*params.scr_height+threadsPerBlock.x-1)/threadsPerBlock.x);
+    dim3 threadsPerBlock(256);
+    dim3 numBlocks((h_params.scr_width*h_params.scr_height+threadsPerBlock.x-1)/threadsPerBlock.x);
 
         #if ENABLE_STREAMS
             //TODO
@@ -133,8 +205,10 @@ void fractal(window<int> &scr, window<double> &fract, std::vector<int> &colors,
                 CUDA_CHECK(cudaStreamDestroy(streams[i]));
             }
         #else
-
-            get_number_iterations<<<numBlocks, threadsPerBlock>>>(params, d_colors, func_idx);
+            if(func_idx == 0)
+                just_basic_mandelbrot<<<numBlocks,threadsPerBlock>>>(d_colors);
+            else
+                get_number_iterations<<<numBlocks, threadsPerBlock>>>(d_colors, func_idx);
             #if ENABLE_CUDA_CHECK   
                 CUDA_CHECK(cudaGetLastError());         
             #else
@@ -195,7 +269,7 @@ void triple_mandelbrot() {
 
     fractal(scr, fract, colors, 1, fname, smooth_color);
 }
-void prewarm_gpu(size_t n=1){
+void prewarm_gpu(size_t n=1){       
     int* dummy;
     cudaMalloc(&dummy,n*sizeof(int));
     cudaFree(dummy);

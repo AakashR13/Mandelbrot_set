@@ -58,7 +58,7 @@ profiler:
 	@echo "Opening NSYS Report!"
 	@nsys-ui $(REP_DIR)/nsys_profile.nsys-rep
 	@echo "Generating Nsights-Compute Report..."
-	@sudo $(NCU) -o $(REP_DIR)/ncu-rep.ncu-rep -f --section ComputeWorkloadAnalysis --section InstructionStats --section SpeedOfLight $(OUTPUT_DIR)/mandelbrot_acc	
+	@sudo $(NCU) -o $(REP_DIR)/ncu-rep.ncu-rep -f --set full $(OUTPUT_DIR)/mandelbrot_acc	
 	@echo "Opening NCU Report!"
 	@ncu-ui $(REP_DIR)/ncu-rep.ncu-rep	
 	@echo "Generated!"
