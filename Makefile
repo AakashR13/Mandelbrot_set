@@ -25,7 +25,7 @@ build:
 
 build-gpu: 
 	@echo "Building Accelerated..."
-	@nvcc -arch=native -std=c++11 -O3 $(SRC_DIR)/save_image.cpp $(SRC_DIR)/utils.cpp $(SRC_DIR)/mandel.cu -lfreeimage -o $(OUTPUT_DIR)/mandelbrot_acc
+	@nvcc -arch=native -std=c++11 -O3 $(SRC_DIR)/save_image.cpp $(SRC_DIR)/mandel.cu -lfreeimage -o $(OUTPUT_DIR)/mandelbrot_acc
 	@echo "Built Accelerated!"
 # Clean up build artifacts
 clean:
@@ -40,11 +40,15 @@ clean-res:
 	@echo "Cleaning Results..."	
 	@rm -rf $(RES_DIR)
 	@mkdir -p $(RES_DIR)
-	@echo "Cleaned!		"
+	@echo "Cleaned!"
 
-run:
+run: run-cpu run-gpu
+
+run-cpu:
 	@echo "Running CPU Version..."
 	-@$(OUTPUT_DIR)/mandelbrot_nonacc || echo "Error in Non-Accelerated"
+
+run-gpu:
 	@echo "Running GPU Version..."
 	-@$(OUTPUT_DIR)/mandelbrot_acc || echo "Error in Accelerated"
 	@echo "Finished!!!"
@@ -64,6 +68,9 @@ profiler:
 	@echo "Generated!"
 
 fresh_build: clean prepare build build-gpu run check
+
+gpu: build-gpu run-gpu check
+
 execution: clean-res run check 
 # Phony targets
-.PHONY: all prepare build build-gpu clean clean-res run check profiler
+.PHONY: all prepare build build-gpu clean clean-res run check profiler gpu

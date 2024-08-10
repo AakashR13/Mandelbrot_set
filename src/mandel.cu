@@ -1,8 +1,5 @@
 #include <vector>
 #include <chrono>
-#include <functional>
-#include <cmath>
-#include <cuda_runtime.h>
 
 #include "gpu_utils.cuh"
 #include "window.h"
@@ -44,6 +41,7 @@ struct FractalParams {
 
     __constant__ FractalParams d_params;
 
+
     __global__ void just_basic_mandelbrot(int* colors, int offset=0) {
         int tix = blockDim.x * blockIdx.x + threadIdx.x + offset;
         double x = tix % win_width;
@@ -54,19 +52,20 @@ struct FractalParams {
             double c_imag = (y) / static_cast<double>(d_params.scr_height) * (d_params.fr_y_max - d_params.fr_y_min) + d_params.fr_y_min;
 
             double z_real=0,z_imag=0;
-            double z_real2=0,z_imag2=0;
-            // double z_real_temp=0, z_imag_temp=0; 
+            // double z_real2=0,z_imag2=0;
+            double z_real_temp = 0, z_imag_temp = 0; 
             int iter = 0;
 
             while(iter < iter_max && z_imag*z_imag + z_real*z_real < 4){
-                z_real2 = z_real*z_real;
-                z_imag2 = z_imag*z_imag;
-                z_imag = 2 * z_real * z_imag + c_imag;
-                z_real = z_real2 - z_imag2 + c_real;
-                // z_imag_temp = fma(2*z_real2,z_imag,c_imag);
-                // z_real_temp = fma(z_real,z_real,fma(-z_imag,z_imag,c_real));
-                // z_imag = z_imag_temp;
-                // z_real = z_real_temp;
+                // z_real2 = z_real*z_real;
+                // z_imag2 = z_imag*z_imag;
+                // z_imag = 2 * z_real * z_imag + c_imag;
+                // z_real = z_real2 - z_imag2 + c_real;
+                z_real_temp = fma(-z_imag, z_imag, c_real); // z_real part
+                z_real_temp = fma(z_real, z_real, z_real_temp);
+                z_imag_temp = fma(2 * z_real, z_imag, c_imag); // z_imag part
+                z_imag = z_imag_temp;
+                z_real = z_real_temp;
                 iter++;
             }
             colors[tix-offset] = iter;
@@ -84,15 +83,21 @@ struct FractalParams {
             double c_imag = (y) / static_cast<double>(d_params.scr_height) * (d_params.fr_y_max - d_params.fr_y_min) + d_params.fr_y_min;
 
             double z_real=0,z_imag=0;
-            double z_real2=0,z_imag2=0;
+            double z_imag2=0;
             double z_real_temp=0, z_imag_temp=0;
             int iter = 0;
 
             while(iter < iter_max && z_imag*z_imag + z_real*z_real < 4 ){
-                z_real2 = z_real * z_real;
+                // z_real2 = z_real * z_real;
                 z_imag2 = z_imag * z_imag;
-                z_real_temp = z_real * (z_real2 - 3 * z_imag2) + c_real;
-                z_imag_temp = z_imag * (3 * z_real2 - z_imag2) + c_imag;
+                // z_real_temp = z_real * (z_real2 - 3 * z_imag2) + c_real;
+                // z_imag_temp = z_imag * (3 * z_real2 - z_imag2) + c_imag;
+                // z_real = z_real_temp;
+                // z_imag = z_imag_temp;
+                z_real_temp = fma(z_real,z_real,-3*z_imag2);
+                z_real_temp = fma(z_real,z_real_temp,c_real);
+                z_imag_temp = fma(3*z_real,z_real,-z_imag2);
+                z_imag_temp = fma(z_imag,z_imag_temp,c_imag);
                 z_real = z_real_temp;
                 z_imag = z_imag_temp;
                 iter++;

@@ -1,0 +1,21 @@
+            Individual Speedups per trial (Mandelbrot, Triple Mandelbrot):
+Trial 1: Mandelbrot: 221.72, Triple Mandelbrot: 190.69
+Trial 2: Mandelbrot: 231.34, Triple Mandelbrot: 193.13
+Trial 3: Mandelbrot: 240.56, Triple Mandelbrot: 189.26
+Trial 4: Mandelbrot: 242.05, Triple Mandelbrot: 189.68
+Trial 5: Mandelbrot: 239.57, Triple Mandelbrot: 186.93
+Trial 6: Mandelbrot: 238.99, Triple Mandelbrot: 188.24
+Trial 7: Mandelbrot: 227.34, Triple Mandelbrot: 194.32
+Trial 8: Mandelbrot: 227.37, Triple Mandelbrot: 188.14
+Trial 9: Mandelbrot: 236.91, Triple Mandelbrot: 192.91
+Trial 10: Mandelbrot: 231.17, Triple Mandelbrot: 185.54
+
+Average Speedups:
+Mandelbrot: 233.70
+Triple Mandelbrot: 189.88
+
+Average Times (ms):
+CPU Mandelbrot: 117865.00
+CPU Triple Mandelbrot: 180520.20
+GPU Mandelbrot: 504.74
+GPU Triple Mandelbrot: 950.85
